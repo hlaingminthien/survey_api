@@ -8,7 +8,10 @@ const getQuestion = (req, res) => {
     const survey_header_id = req.params.survey_header_id;
     const buildingId = req.params.buildingId;
     let count = 0;
+    
+    
     surveyService.getQuestion(admin_id, survey_header_id, buildingId).then(data => {
+        
         let surveySections = Object.keys(groupArray(data[0], 'survey_section_id')).map((v, k) => {
             return groupArray(data[0], 'survey_section_id')[v];
         });
@@ -37,6 +40,20 @@ const getQuestion = (req, res) => {
     }).catch(err => res.json(response({ success: false, message: err })));
 }
 
+const surveyList = (req, res) => {
+    let userId = req.params.user_id;
+    let survey_header_id = req.params.survey_header_id
+    surveyService.surveyList(userId, survey_header_id).then(data => {
+        let surveyList = {
+            "List": data[0],
+            "newList": data[1]
+        }
+        res.json(response({ success: true, payload: surveyList }))
+
+    }).catch(err => res.json(response({ success: false, message: err })));
+}
+
+
 const getMenu = (req, res) => {
     let userId = req.params.user_id;
     surveyService.getMenu(userId).then(data => {
@@ -54,17 +71,27 @@ const surveyMenuApi = (req, res) => {
 }
 
 
-const surveyList = (req, res) => {
+// const surveyList = (req, res) => {
+//     let userId = req.params.user_id;
+//     let survey_header_id = req.params.survey_header_id
+//     surveyService.surveyList(userId, survey_header_id).then(data => {
+//         res.json(response({ success: true, payload: data }))
+
+//     }).catch(err => res.json(response({ success: false, message: err })));
+// }
+
+const newSurveyList = (req, res) => {
     let userId = req.params.user_id;
     let survey_header_id = req.params.survey_header_id
-    surveyService.surveyList(userId, survey_header_id).then(data => {
+    surveyService.newSurveyList(userId, survey_header_id).then(data => {
         res.json(response({ success: true, payload: data }))
 
     }).catch(err => res.json(response({ success: false, message: err })));
 }
 
-const addAnswer = (req, res) => {
+const addAnswer = (req, res) => {    
     let targetCount = req.body.data.length;
+    
     let count = 0;
     let queryLoop = new Promise((resolve, reject) => {
         surveyService.deleteAnswer(req.body.data[0].userId, req.body.data[0].survey_headers_id, req.body.data[0].building_id)
@@ -112,4 +139,4 @@ const deleteAnswer = (req, res) => {
         });
 }
 
-module.exports = { getQuestion, addAnswer, getMenu, deleteAnswer, surveyList, surveyMenuApi };
+module.exports = { getQuestion, addAnswer, getMenu, deleteAnswer, surveyList, surveyMenuApi ,newSurveyList};

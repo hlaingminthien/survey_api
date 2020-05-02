@@ -4,8 +4,9 @@ const getBuilding = () => {
     return surveydb.getBuilding();
 }
 
-const addBuilding = (buildingName, companyName, address, postalCode, country, comment) => {
-    return surveydb.addBuilding(buildingName, companyName, address, postalCode, country, comment);
+const addBuilding = (buildingName, companyName, address, postalCode, country, comment, userId, surveyHeadersId) => {
+    return surveydb.addBuilding(buildingName, companyName, address, postalCode, country, comment, userId, surveyHeadersId);
 }
+
 
 module.exports = { getBuilding, addBuilding }
