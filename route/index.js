@@ -18,6 +18,7 @@ router.use(routeMiddleware)
 
 router.use('/auth', authRouter)
 router.use('/survey', surveyRouter)
+// router.use('/user', userRouter)
 router.use('/count', reportTotalAnswersRouter)
 router.use('/company', companyRouter)
 router.use('/building', buildingRouter)
