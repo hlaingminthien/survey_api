@@ -3,6 +3,7 @@ const util = require("util")
 
 require('dotenv').config()
 
+
 const mypool = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -21,16 +22,8 @@ const login = (email) => {
 
 // addUser
 
-// const addUser = (userName, password, email, companyName) => {
-
-//   bcrypt.hash(password, saltRounds, function (err, hash) {
-//     query = util.promisify(mypool.query).bind(mypool)
-//     return query(`INSERT INTO tbl_login_users(user_name,password,email,active,user_level_id,company_name) VALUES(?,?,?,?,?,?)`, [userName, hash, email, 1, 2, companyName])
-//   })
-// }
 
 const addUser = (userName, password, email, companyName) => {
-
   query = util.promisify(mypool.query).bind(mypool)
   return query(`INSERT INTO tbl_login_users(user_name,password,email,active,user_level_id,company_name) VALUES(?,?,?,?,?,?)`, [userName, password, email, 1, 2, companyName])
 
@@ -39,6 +32,7 @@ const addUser = (userName, password, email, companyName) => {
 const updateUser = (userId, userName, password, email) => {
   query = util.promisify(mypool.query).bind(mypool)
   return query(`UPDATE tbl_login_users SET user_name = '${userName}', password = '${password}', email = '${email}' WHERE login_user_id = ${userId} `)
+
 }
 
 
@@ -97,9 +91,9 @@ const addCompany = (companyName) => {
 const getQuestion = (user_id, survey_header_id, buildingId) => {
   query = util.promisify(mypool.query).bind(mypool)
   return query(`select * from tbl_questions as q left join tbl_option_choices as o  on q.question_id = o.questions_id
-  left join tbl_survey_sections as s on s.survey_section_id = q.survey_sections_id left join tbl_survey_headers as h
-   on h.survey_header_id = s.survey_headers_id where h.survey_header_id = ${survey_header_id} and h.active = true;
-   select other,option_choices_id as optionChoiceId,users_id as userId,questions_id as questionId, survey_headers_id,building_id from tbl_answers where users_id = ${user_id} and survey_headers_id = ${survey_header_id} and building_id = ${buildingId};`)
+      left join tbl_survey_sections as s on s.survey_section_id = q.survey_sections_id left join tbl_survey_headers as h
+        on h.survey_header_id = s.survey_headers_id where h.survey_header_id = ${survey_header_id} and h.active = true;
+          select other,option_choices_id as optionChoiceId,users_id as userId,questions_id as questionId, survey_headers_id,building_id from    tbl_answers where users_id = ${user_id} and survey_headers_id = ${survey_header_id} and building_id = ${buildingId};`)
 }
 
 const isExistAdmin = (username, userId) => {
@@ -282,71 +276,125 @@ const updateQuestion = (question_id, questionName, required, isOther, optionGrou
 // @HeinMinHtet
 // AnswerCount
 
-const reportTotalAnswers = (survey_header_id, startDate, endDate) => {
-
+const reportTotalAnswers = (userId, survey_header_id, startDate, endDate) => {
   query = util.promisify(mypool.query).bind(mypool)
-  return query(`select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,
-  sh.survey_header_id,ss.survey_section_id,i.input_type_id,
-    (select count(option_choices_id) as atcount from tbl_answers as aa where 
-    date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' and survey_headers_id=${survey_header_id} and 
-    aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
-      from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
-  ((select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
-  (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
-      date(answered_date)  >=' ${startDate}' and date(answered_date) <= '${endDate}' 
-       GROUP BY option_choices_id,questions_id,other) as t1 
-       right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
-       left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=${survey_header_id}) union
-       (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
-  (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
-      date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' and other like '{"YearOfManufacturing%' 
-       GROUP BY option_choices_id,questions_id,other) as t2
-       left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
-       left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=${survey_header_id}) )as t3 
-       order by question_id) as t4
-       left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
-       left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id 
-       
-       left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
-       survey_header_id = ${survey_header_id} and survey_header_id!="" order by question_id;
-       select  survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${survey_header_id};
-       
-   `)
+  return (startDate != null ) ? query(`select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,sh.survey_header_id,ss.survey_section_id,i.input_type_id,(select count(option_choices_id) as atcount from tbl_answers as aa where date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' and survey_headers_id=${survey_header_id} and 
+      aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
+        from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
+  (
+      (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+        (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
+          date(answered_date)  >=' ${startDate}' and date(answered_date) <= '${endDate}' 
+            GROUP BY option_choices_id,questions_id,other) as t1 
+              right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
+              left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=${survey_header_id}) union
+      (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.  survey_headers_id from
+        (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
+          date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' and other like '{"YearOfManufacturing%' 
+            GROUP BY option_choices_id,questions_id,other) as t2
+              left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
+              left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=${survey_header_id}) )as t3 
+              order by question_id) as t4
+                left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
+                left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id        
+                  left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
+                    survey_header_id = ${survey_header_id} and survey_header_id!="" order by question_id;
+    select survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${survey_header_id};`)
+    : query(`select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,sh.survey_header_id,
+    ss.survey_section_id,i.input_type_id,(select count(option_choices_id) as atcount 
+    from tbl_answers as aa where survey_headers_id=${survey_header_id} and 
+          aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
+            from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
+      (
+          (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+            (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers 
+                GROUP BY option_choices_id,questions_id,other) as t1 
+                  right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
+                  left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=${survey_header_id}) union
+          (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+            (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
+        other like '{"YearOfManufacturing%' 
+                GROUP BY option_choices_id,questions_id,other) as t2
+                  left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
+                  left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=${survey_header_id}) )as t3 
+                  order by question_id) as t4
+                    left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
+                    left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id        
+                      left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
+                        survey_header_id = ${survey_header_id} and survey_header_id!="" order by question_id;
+      select survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${survey_header_id};`)
 }
 
 
-// const reportTotalAnswers = (survey_header_id,startDate,endDate) => {
+
+// const reportDateTimeAnswers = (survey_header_id, startDate, endDate) => {
 //   query = util.promisify(mypool.query).bind(mypool)
-//   return query(`select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,sh.survey_name,ss.section_name,
-//   sh.survey_header_id,ss.survey_section_id,i.input_type_id,
-//     (select count(option_choices_id) as atcount from tbl_answers as aa where date(answered_date)  >= '${startDate}' and 
-//     date(answered_date) <= '${endDate}' and survey_headers_id=${survey_header_id} and aa.questions_id=t1.questions_id 
-//     group by questions_id order by atcount DESC)as atcount
-//       from(SELECT count(option_choices_id)as acount,option_choices_id,questions_id FROM evercomm_survey.tbl_answers 
-//       WHERE date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}'
-//        GROUP BY option_choices_id,questions_id) as t1 right join 
-//        evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
-//        left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id 
-//        left join evercomm_survey.tbl_input_types i on q.input_types_id = input_type_id
-//        left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = q.survey_headers_id 
-//        left join evercomm_survey.tbl_answers aaa on t1.questions_id = aaa.questions_id 
-//        left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = q.survey_sections_id where 
-//        survey_header_id = ${survey_header_id} and survey_header_id!="" order by acount DESC;
-//    select  survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${survey_header_id};`)
+//   return query(`select t1.other,q.question_name,q.question_id,sh.survey_name,ss.section_name, sh.survey_header_id, ss.survey_section_id  
+//       from(SELECT questions_id,other FROM evercomm_survey.tbl_answers WHERE 
+//         date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' 
+//         and  other like '{"YearOfManufacturing%' 
+//           ) as t1 
+//         left join evercomm_survey.tbl_questions q on t1.questions_id = q.question_id      
+//           left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = q.survey_headers_id      
+//             left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = q.survey_sections_id where 
+//               survey_header_id = ${survey_header_id} and survey_header_id!="" order by question_id ASC;`)
 // }
 
-const reportDateTimeAnswers = (survey_header_id, startDate, endDate) => {
+const reportUserAnswer = (userId, surveyHeaderId, startDate, endDate) => {
   query = util.promisify(mypool.query).bind(mypool)
-  return query(`select t1.other,q.question_name,q.question_id,sh.survey_name,ss.section_name,
-  sh.survey_header_id, ss.survey_section_id  
-      from(SELECT questions_id,other FROM evercomm_survey.tbl_answers WHERE 
-      date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' 
-      and  other like '{"YearOfManufacturing%' 
-       ) as t1 
-       left join evercomm_survey.tbl_questions q on t1.questions_id = q.question_id      
-       left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = q.survey_headers_id      
-       left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = q.survey_sections_id where 
-       survey_header_id = ${survey_header_id} and survey_header_id!="" order by question_id ASC;`)
+  return (startDate != null ) ? query(`select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,
+  sh.survey_header_id,ss.survey_section_id,i.input_type_id,
+  (select count(option_choices_id) as atcount from tbl_answers as aa where date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' 
+  and survey_headers_id=${surveyHeaderId} and users_id = ${userId} and
+        aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
+          from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
+    (
+        (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+          (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE users_id = ${userId} and
+            date(answered_date)  >='${startDate}' and date(answered_date) <= '${endDate}'
+              GROUP BY option_choices_id,questions_id,other) as t1 
+                right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
+                left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=${surveyHeaderId}) union
+        (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.  survey_headers_id from
+          (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE users_id = ${userId} and
+            date(answered_date)  >= '${startDate}' and date(answered_date) <= '${endDate}' and other like '{"YearOfManufacturing%' 
+              GROUP BY option_choices_id,questions_id,other) as t2
+                left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
+                left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=${surveyHeaderId}) )as t3 
+                order by question_id) as t4
+                  left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
+                  left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id        
+                    left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
+                      survey_header_id = ${surveyHeaderId} and survey_header_id!="" order by question_id;
+                      select survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${surveyHeaderId} and users_id = ${userId};`) :
+    query(`select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,sh.survey_header_id,
+    ss.survey_section_id,i.input_type_id,(select count(option_choices_id) as atcount 
+    from tbl_answers as aa where survey_headers_id=${surveyHeaderId} and users_id = ${userId} and
+          aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
+            from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
+      (
+          (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+            (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers where users_id = ${userId}
+                GROUP BY option_choices_id,questions_id,other) as t1 
+                  right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
+                  left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=${surveyHeaderId}) union
+          (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
+            (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE users_id = ${userId} and
+        other like '{"YearOfManufacturing%' 
+                GROUP BY option_choices_id,questions_id,other) as t2
+                  left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
+                  left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=${surveyHeaderId}) )as t3 
+                  order by question_id) as t4
+                    left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
+                    left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id        
+                      left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
+                        survey_header_id = ${surveyHeaderId} and survey_header_id!="" order by question_id;
+                        select survey_headers_id,count(distinct building_id) as Number_of_buildings from evercomm_survey.tbl_answers where survey_headers_id=${surveyHeaderId} and users_id = ${userId};`)
+}
+
+const userLevelAnswer = (userId, surveyHeaderId, startDate, endDate) => {
+  query = util.promisify(mypool.query).bind(mypool)
+  return query(`SELECT user_level_id FROM evercomm_survey.tbl_login_users where login_user_id = ${userId};`)
 }
 
 
@@ -357,40 +405,37 @@ const getFormInfo = (companyId) => {
     : query(`select b.building_id,b.building_name,b.address,c.company_id,c.company_name from tbl_buildings as b left join tbl_company as c on b.company_id = c.company_id where b.active = true`)
 }
 
-// select survey_header_id,bd.building_id as building_id, bd.building_name as building_name,  count(qcount) as questions, count(acount) as answers
 
 const surveyList = (userId, survey_header_id) => {
   query = util.promisify(mypool.query).bind(mypool)
-  return query(`
-  select survey_header_id, t2.building_id as building_id, b.building_name as building_name, answers, (select count(*) from tbl_questions qq 
-    where qq.survey_headers_id=t2.survey_header_id
-  ) as questions
-  from (
-  select survey_header_id, building_id, count(qcount) as questions, count(acount) as answers
-    from (
-      SELECT
+  return query(`select survey_header_id, t2.building_id as building_id, b.building_name as building_name, answers, (select count(*) from      tbl_questions qq where qq.survey_headers_id=t2.survey_header_id
+    ) as questions
+        from (
+    select survey_header_id, building_id, count(qcount) as questions, count(acount) as answers
+        from (
+    SELECT
         distinct  q.question_id as qcount, a.questions_id as acount, q.survey_headers_id as survey_header_id,h.survey_name as survey_header_name,a.building_id as building_id
-      FROM
+    FROM
         tbl_questions as q
-      left join tbl_answers a on q.survey_headers_id=a.survey_headers_id and q.question_id=a.questions_id and a.users_id = ${userId}
-      left join tbl_survey_headers h on h.survey_header_id = q.survey_headers_id   
-     where q.survey_headers_id=${survey_header_id} and a.building_id!=""
-    ) as t1 
-    group by survey_header_id, building_id
-    ) as t2
-    left join tbl_buildings b on b.building_id=t2.building_id;
-    SELECT distinct tbl_buildings.user_id,tbl_buildings.survey_headers_id,
-      tbl_buildings.building_id,tbl_buildings.building_name FROM
-      evercomm_survey.tbl_buildings inner join evercomm_survey.tbl_answers on
-      tbl_buildings.user_id = ${userId} and tbl_buildings.survey_headers_id=${survey_header_id}`)
+          left join tbl_answers a on q.survey_headers_id=a.survey_headers_id and q.question_id=a.questions_id and a.users_id = ${userId}
+            left join tbl_survey_headers h on h.survey_header_id = q.survey_headers_id   
+              left join tbl_buildings b on a.building_id = b.building_id
+            where q.survey_headers_id= ${survey_header_id} and a.building_id!=""  and b.active = 1
+              ) as t1 
+      group by survey_header_id, building_id
+        ) as t2
+          left join tbl_buildings b on b.building_id=t2.building_id;
+        SELECT distinct tbl_buildings.user_id,tbl_buildings.survey_headers_id,
+          tbl_buildings.building_id,tbl_buildings.building_name FROM
+            evercomm_survey.tbl_buildings inner join evercomm_survey.tbl_answers on
+              tbl_buildings.user_id = ${userId} and tbl_buildings.survey_headers_id=${survey_header_id}`)
 }
 
 const newSurveyList = (userId, survey_header_id) => {
   query = util.promisify(mypool.query).bind(mypool)
-  return query(`SELECT distinct tbl_buildings.user_id,tbl_buildings.survey_headers_id,
-  tbl_buildings.building_id,tbl_buildings.building_name FROM
-  evercomm_survey.tbl_buildings inner join evercomm_survey.tbl_answers on
-  tbl_buildings.user_id = ${userId} and tbl_buildings.survey_headers_id=${survey_header_id}`)
+  return query(`SELECT distinct b.user_id,b.survey_headers_id,b.building_id,b.building_name 
+      FROM evercomm_survey.tbl_buildings as b inner join evercomm_survey.tbl_answers a on
+          b.user_id = ${userId} and b.survey_headers_id= ${survey_header_id} and b.active= 1`)
 }
 
 
@@ -403,6 +448,11 @@ const addBuilding = (buildingName, companyName, address, postalCode, country, co
     [buildingName, companyName, 'ok', 1, 1, address, postalCode, country, comment, userId, surveyHeadersId])
 }
 
+const updateBuilding = (buildingId, active) => {
+  const query = util.promisify(mypool.query).bind(mypool)
+  return query(`UPDATE tbl_buildings SET active = ${active} WHERE building_id = ${buildingId}`)
+}
+
 
 // surveyMenuApi
 
@@ -410,12 +460,11 @@ const surveyMenuApi = (userId) => {
   query = util.promisify(mypool.query).bind(mypool)
   return query(`SELECT survey_header_id,survey_name,count(building_id) as amount_of_survey
   FROM (
-   select 
-   distinct a.building_id as building_id,sh.survey_header_id as survey_header_id, sh.survey_name as survey_name 
-  from tbl_survey_headers as sh 
-  left join tbl_answers a on sh.survey_header_id=a.survey_headers_id and a.users_id = ${userId}
-  ) as t1
-   group by survey_header_id`)
+    select 
+      distinct a.building_id as building_id,sh.survey_header_id as survey_header_id, sh.survey_name as survey_name 
+        from tbl_survey_headers as sh 
+          left join tbl_answers a on sh.survey_header_id=a.survey_headers_id and a.users_id = ${userId}
+            ) as t1 group by survey_header_id`)
 }
 
 
@@ -431,35 +480,7 @@ module.exports = {
   addInputType, deleteInputType, updateInputType,
   addQuestion, deleteQuestion, updateQuestion, reportTotalAnswers,
   getMenu, updateUser,
-  getFormInfo, getCompany, addCompany, surveyList, addBuilding,
-  surveyMenuApi, newSurveyList, reportDateTimeAnswers
+  getFormInfo, getCompany, addCompany, surveyList, addBuilding, updateBuilding,
+  surveyMenuApi, newSurveyList, userLevelAnswer, reportUserAnswer
 }
 
-// select  distinct(acount) as acount,t4.other ,t4.option_choice_name, t4.question_name,t4.question_id,sh.survey_name,ss.section_name,
-//   sh.survey_header_id,ss.survey_section_id,i.input_type_id,
-//     (select count(option_choices_id) as atcount from tbl_answers as aa where 
-//     date(answered_date)  >= '2020-5-3' and date(answered_date) <= '2020-5-12' and survey_headers_id=1 and 
-//     aa.questions_id=t4.question_id group by questions_id order by atcount DESC)as atcount
-//       from(select  acount ,option_choice_name, question_name,question_id,other,survey_sections_id,survey_headers_id,input_types_id from
-//   ((select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
-//   (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
-//       date(answered_date)  >= '2020-5-3' and date(answered_date) <= '2020-5-12' 
-//        GROUP BY option_choices_id,questions_id,other) as t1 
-//        right join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t1.option_choices_id
-//        left join evercomm_survey.tbl_questions q on oc.questions_id = q.question_id where survey_headers_id=1) union
-//        (select distinct(acount)as acount ,oc.option_choice_name, q.question_name,q.question_id,other,q.survey_sections_id,q.input_types_id,q.survey_headers_id from
-//   (SELECT count(option_choices_id)as acount,option_choices_id,questions_id,other FROM evercomm_survey.tbl_answers WHERE 
-//       date(answered_date)  >= '2020-5-3' and date(answered_date) <= '2020-5-12' and other like '{"YearOfManufacturing%' 
-//        GROUP BY option_choices_id,questions_id,other) as t2
-//        left join evercomm_survey.tbl_option_choices oc on oc.option_choice_id = t2.option_choices_id
-//        left join evercomm_survey.tbl_questions q on t2.questions_id = q.question_id where survey_headers_id=1) )as t3 
-//        order by question_id) as t4
-//        left join evercomm_survey.tbl_input_types i on t4.input_types_id = input_type_id
-//        left join evercomm_survey.tbl_survey_headers sh on sh.survey_header_id = t4.survey_headers_id 
-
-//        left join evercomm_survey.tbl_survey_sections ss on ss.survey_section_id = t4.survey_sections_id where 
-//        survey_header_id = 1 and survey_header_id!="" order by question_id;
-
-
-// c.other != null && c.other.includes('{') ?
-// JSON.parse(c.other) : c.other

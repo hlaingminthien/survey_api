@@ -1,6 +1,7 @@
 const { surveydb } = require('../db')
 const { produceToken } = require('../security/token')
 const bcrypt = require("bcrypt")
+const response = require('../model/response')
 
 const login = (email, password, callbackWhenDone) => {
     return surveydb.login(email, password).then(res => {
@@ -18,7 +19,9 @@ const login = (email, password, callbackWhenDone) => {
                     const data = {
                         token: token,
                         login_user_id: res[0].login_user_id,
-                        email: res[0].email
+                        email: res[0].email,
+                        user_level_id: res[0].user_level_id
+
                     }
                     return callbackWhenDone(null, data)
                 } else {
@@ -30,9 +33,7 @@ const login = (email, password, callbackWhenDone) => {
         else {
             return callbackWhenDone(null, false)
         }
-    }).catch(err => {
-        console.log(err)
-    })
+    }).catch(err => (response({ error: err, success: false, message: err })))
 }
 
 
